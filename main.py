@@ -3,12 +3,13 @@ import sys
 import geopandas as gpd
 import simplekml
 import fiona
-import xml.etree.ElementTree as ET
 from shapely import Polygon, LineString, Point, MultiPolygon, \
     MultiLineString, MultiPoint
 from fiona.drvsupport import supported_drivers
 
 supported_drivers['LIBKML'] = 'rw'
+supported_drivers['KML'] = 'rw'
+
 software_version = 'GIS2DJI_V03'
 
 
@@ -46,6 +47,8 @@ class App:
         for interior in geom.interiors:
             int_ring.append(list(interior.coords))
         kml = simplekml.Kml()
+        ofn = ofn.split('-', 1)[0]
+        ofn = ofn + "-new"
         obj = kml.newpolygon(name=ofn,
                              description=index)
         obj.outerboundaryis = ext
@@ -54,8 +57,7 @@ class App:
         else:
             obj.innerboundaryis = int_ring
         output_file_name = os.path.join(output_path,
-                                        ofn + '-' + str(index) + '-' +
-                                        geom.geom_type + '.kml')
+                                        ofn + '.kml')
 
         kml.save(output_file_name)
         err.append('Exporting: ' + output_file_name)
@@ -118,8 +120,7 @@ class App:
         fn = os.path.basename(os.path.splitext(file)[0])  # toto.shp --> toto
         fnx = (os.path.basename(os.path.splitext(file)[1])).strip('.')  # .shp
         ffn = os.path.basename(file)  # toto.shp
-        #  Load support for kml read libraries from fiona
-        # gpd.io.file.fiona.drvsupport.supported_drivers['LIBKML'] = 'rw'
+
         msg.append('Reading:' + ffn)
         try:
             layerlist = fiona.listlayers(file)
@@ -132,9 +133,11 @@ class App:
         for layers in layerlist:
             layer_name = layerlist[cnt]
             cnt += 1
+            print(layers)
             try:
                 layers = gpd.read_file(file, layer=layers)
-            except:
+            except Exception as e:
+                print(e)
                 msg.append('An exception occurred. Cannot not read layer ' + layer_name)
                 msg.append('Skipping layer.')
                 continue
